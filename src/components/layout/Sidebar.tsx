@@ -78,9 +78,9 @@ export default function Sidebar() {
         {/* Store with dropdown */}
         <div>
           <NavLink
-            to="/sales"
+            to="/store"
             className={linkCls}
-            style={({ isActive }) => activeStyle(pathname === "/sales" && isActive) as any}
+            style={({ isActive }) => activeStyle(pathname === "/store" && isActive) as any}
           >
             <Store className="h-4 w-4" />
             <span className="flex-1 text-left">Store</span>
