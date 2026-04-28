@@ -17,7 +17,8 @@ const storeChildren = [
 ];
 const tail = [
   { to: "/expense", label: "Expense", icon: Receipt },
-  { to: "/sales", label: "Sales Report", icon: TrendingUp },
+  { to: "/sales", label: "Sales", icon: TrendingUp },
+  { to: "/report", label: "Report", icon: TrendingUp },
   { to: "/staff", label: "Staff", icon: Users },
   { to: "/goal", label: "Goal", icon: Target },
 ];
