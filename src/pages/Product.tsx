@@ -110,7 +110,7 @@ export default function Product() {
             <thead>
               <tr className="text-left text-muted-foreground border-b border-border">
                 <th className="p-3">Image</th><th className="p-3">Name</th><th className="p-3">Description</th>
-                <th className="p-3">Price</th><th className="p-3">Subcategory</th><th className="p-3">Status</th><th className="p-3">Action</th>
+                <th className="p-3">Cost</th><th className="p-3">Price</th><th className="p-3">Profit</th><th className="p-3">Subcategory</th><th className="p-3">Status</th><th className="p-3">Action</th>
               </tr>
             </thead>
             <tbody>
