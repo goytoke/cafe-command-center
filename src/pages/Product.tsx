@@ -17,7 +17,7 @@ export default function Product() {
   const [sub, setSub] = useState<string>("All");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "", category: "drink", subcategory: "Iced Coffee", price: "", status: "available" });
+  const [form, setForm] = useState({ name: "", description: "", category: "drink", subcategory: "Iced Coffee", price: "", cost: "", status: "available" });
   const [img, setImg] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
