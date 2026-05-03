@@ -31,13 +31,13 @@ export default function Product() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", description: "", category: cat, subcategory: SUBCATEGORIES[cat][0], price: "", status: "available" });
+    setForm({ name: "", description: "", category: cat, subcategory: SUBCATEGORIES[cat][0], price: "", cost: "", status: "available" });
     setImg(null); setPreview(null);
     setOpen(true);
   };
   const openEdit = (p: any) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description ?? "", category: p.category, subcategory: p.subcategory, price: String(p.price), status: p.status });
+    setForm({ name: p.name, description: p.description ?? "", category: p.category, subcategory: p.subcategory, price: String(p.price), cost: String(p.cost ?? 0), status: p.status });
     setPreview(p.image_url); setImg(null);
     setOpen(true);
   };
@@ -49,7 +49,7 @@ export default function Product() {
       const { error } = await supabase.storage.from("product-images").upload(path, img);
       if (!error) image_url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
     }
-    const payload = { ...form, price: Number(form.price), image_url };
+    const payload = { ...form, price: Number(form.price), cost: Number(form.cost), image_url };
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
       prettyToast.success(`"${form.name}" updated`, "Product saved successfully");
