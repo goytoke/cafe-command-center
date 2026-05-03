@@ -1,0 +1,2 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS cost numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS cost numeric NOT NULL DEFAULT 0;

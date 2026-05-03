@@ -17,7 +17,7 @@ export default function Product() {
   const [sub, setSub] = useState<string>("All");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "", category: "drink", subcategory: "Iced Coffee", price: "", status: "available" });
+  const [form, setForm] = useState({ name: "", description: "", category: "drink", subcategory: "Iced Coffee", price: "", cost: "", status: "available" });
   const [img, setImg] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -31,13 +31,13 @@ export default function Product() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", description: "", category: cat, subcategory: SUBCATEGORIES[cat][0], price: "", status: "available" });
+    setForm({ name: "", description: "", category: cat, subcategory: SUBCATEGORIES[cat][0], price: "", cost: "", status: "available" });
     setImg(null); setPreview(null);
     setOpen(true);
   };
   const openEdit = (p: any) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description ?? "", category: p.category, subcategory: p.subcategory, price: String(p.price), status: p.status });
+    setForm({ name: p.name, description: p.description ?? "", category: p.category, subcategory: p.subcategory, price: String(p.price), cost: String(p.cost ?? 0), status: p.status });
     setPreview(p.image_url); setImg(null);
     setOpen(true);
   };
@@ -49,7 +49,7 @@ export default function Product() {
       const { error } = await supabase.storage.from("product-images").upload(path, img);
       if (!error) image_url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
     }
-    const payload = { ...form, price: Number(form.price), image_url };
+    const payload = { ...form, price: Number(form.price), cost: Number(form.cost), image_url };
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
       prettyToast.success(`"${form.name}" updated`, "Product saved successfully");
@@ -110,12 +110,12 @@ export default function Product() {
             <thead>
               <tr className="text-left text-muted-foreground border-b border-border">
                 <th className="p-3">Image</th><th className="p-3">Name</th><th className="p-3">Description</th>
-                <th className="p-3">Price</th><th className="p-3">Subcategory</th><th className="p-3">Status</th><th className="p-3">Action</th>
+                <th className="p-3">Cost</th><th className="p-3">Price</th><th className="p-3">Profit</th><th className="p-3">Subcategory</th><th className="p-3">Status</th><th className="p-3">Action</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground"><Package className="h-10 w-10 mx-auto mb-2 opacity-40" />No products yet</td></tr>
+                <tr><td colSpan={9} className="p-12 text-center text-muted-foreground"><Package className="h-10 w-10 mx-auto mb-2 opacity-40" />No products yet</td></tr>
               ) : filtered.map((p) => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="p-3">
@@ -123,7 +123,9 @@ export default function Product() {
                   </td>
                   <td className="p-3 font-medium">{p.name}</td>
                   <td className="p-3 text-muted-foreground max-w-xs truncate">{p.description}</td>
+                  <td className="p-3">{money(p.cost)}</td>
                   <td className="p-3 font-semibold">{money(p.price)}</td>
+                  <td className="p-3 font-semibold text-success">{money(Number(p.price) - Number(p.cost ?? 0))}</td>
                   <td className="p-3">{p.subcategory}</td>
                   <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs bg-success/20 text-success">{p.status}</span></td>
                   <td className="p-3">
@@ -159,6 +161,7 @@ export default function Product() {
                 <SelectContent>{SUBCATEGORIES[form.category as Category].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div className="space-y-2"><Label>Cost (per unit)</Label><Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} /></div>
             <div className="space-y-2"><Label>Price</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
             <div className="space-y-2"><Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>

@@ -39,7 +39,7 @@ export default function Order() {
     await supabase.from("order_items").insert(cart.map((c) => ({
       order_id: order.id, product_id: c.product.id, product_name: c.product.name,
       category: c.product.category, subcategory: c.product.subcategory,
-      quantity: c.qty, price: c.product.price,
+      quantity: c.qty, price: c.product.price, cost: c.product.cost ?? 0,
     })));
     prettyToast.success("Order placed", `${money(total)} via ${pay}`);
     setCart([]);

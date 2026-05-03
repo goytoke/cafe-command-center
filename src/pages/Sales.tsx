@@ -10,6 +10,8 @@ export default function Sales() {
   }, []);
 
   const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
+  const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
+  const netProfit = total - totalCost;
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
@@ -25,23 +27,28 @@ export default function Sales() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between flex-wrap gap-3">
         <h1 className="text-3xl font-bold gradient-text">Today's Sales</h1>
-        <div className="text-2xl font-bold">{money(total)}</div>
+        <div className="flex gap-6 flex-wrap">
+          <div><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-bold">{money(total)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Cost</div><div className="text-2xl font-bold text-warning">{money(totalCost)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Net Profit</div><div className="text-2xl font-bold text-success">{money(netProfit)}</div></div>
+        </div>
       </div>
 
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Total</th><th className="p-3">Time</th>
+            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Time</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
+            {items.length === 0 ? <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
               items.map((i) => (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.product_name}</td>
                   <td className="p-3">{i.quantity}</td>
                   <td className="p-3">{money(i.price)}</td>
+                  <td className="p-3 text-success">{money(Number(i.price) - Number(i.cost ?? 0))}</td>
                   <td className="p-3 font-semibold">{money(Number(i.price) * Number(i.quantity))}</td>
                   <td className="p-3">{new Date(i.created_at).toLocaleTimeString()}</td>
                 </tr>
