@@ -115,7 +115,7 @@ export default function Product() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="p-12 text-center text-muted-foreground"><Package className="h-10 w-10 mx-auto mb-2 opacity-40" />No products yet</td></tr>
+                <tr><td colSpan={9} className="p-12 text-center text-muted-foreground"><Package className="h-10 w-10 mx-auto mb-2 opacity-40" />No products yet</td></tr>
               ) : filtered.map((p) => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="p-3">
@@ -123,7 +123,9 @@ export default function Product() {
                   </td>
                   <td className="p-3 font-medium">{p.name}</td>
                   <td className="p-3 text-muted-foreground max-w-xs truncate">{p.description}</td>
+                  <td className="p-3">{money(p.cost)}</td>
                   <td className="p-3 font-semibold">{money(p.price)}</td>
+                  <td className="p-3 font-semibold text-success">{money(Number(p.price) - Number(p.cost ?? 0))}</td>
                   <td className="p-3">{p.subcategory}</td>
                   <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs bg-success/20 text-success">{p.status}</span></td>
                   <td className="p-3">
