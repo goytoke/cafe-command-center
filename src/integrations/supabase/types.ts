@@ -104,6 +104,7 @@ export type Database = {
       order_items: {
         Row: {
           category: string | null
+          cost: number
           created_at: string
           id: string
           order_id: string
@@ -115,6 +116,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cost?: number
           created_at?: string
           id?: string
           order_id: string
@@ -126,6 +128,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cost?: number
           created_at?: string
           id?: string
           order_id?: string
@@ -179,6 +182,7 @@ export type Database = {
       products: {
         Row: {
           category: string
+          cost: number
           created_at: string
           created_by: string | null
           description: string | null
@@ -191,6 +195,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          cost?: number
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -203,6 +208,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          cost?: number
           created_at?: string
           created_by?: string | null
           description?: string | null
