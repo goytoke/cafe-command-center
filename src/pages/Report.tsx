@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { money } from "@/lib/format";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import { Download } from "lucide-react";
 
 type Tab = "sales" | "expense" | "orders";
 
 export default function Report() {
+  const { ymd, startISO, endISO, date } = useDateFilter();
   const [orders, setOrders] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [exp, setExp] = useState<any[]>([]);
@@ -14,13 +16,13 @@ export default function Report() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("orders").select("*").order("created_at", { ascending: false }),
-      supabase.from("order_items").select("*").order("created_at", { ascending: false }),
-      supabase.from("expenses").select("*").order("purchase_date", { ascending: false }),
+      supabase.from("orders").select("*").gte("created_at", startISO).lte("created_at", endISO).order("created_at", { ascending: false }),
+      supabase.from("order_items").select("*").gte("created_at", startISO).lte("created_at", endISO).order("created_at", { ascending: false }),
+      supabase.from("expenses").select("*").eq("purchase_date", ymd).order("created_at", { ascending: false }),
     ]).then(([{ data: o }, { data: it }, { data: e }]) => {
       setOrders(o ?? []); setItems(it ?? []); setExp(e ?? []);
     });
-  }, []);
+  }, [ymd, startISO, endISO]);
 
   const totalSales = orders.reduce((s, o) => s + Number(o.total), 0);
   const totalExpense = exp.reduce((s, e) => s + Number(e.total), 0);
@@ -47,7 +49,7 @@ export default function Report() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold gradient-text">Reports</h1>
+        <h1 className="text-3xl font-bold gradient-text">Reports — {date.toLocaleDateString()}</h1>
         <Button onClick={exportCSV} variant="outline"><Download className="h-4 w-4 mr-2" />Export CSV</Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
