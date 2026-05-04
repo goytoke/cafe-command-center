@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShoppingCart, Receipt, TrendingUp, DollarSign } from "lucide-react";
-import { money, startOfTodayISO } from "@/lib/format";
+import { money } from "@/lib/format";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -9,16 +10,16 @@ import {
 type Tab = "sales" | "order" | "expense";
 
 export default function Dashboard() {
+  const { ymd, startISO, endISO, date } = useDateFilter();
   const [stats, setStats] = useState({ sales: 0, orders: 0, expense: 0 });
   const [tab, setTab] = useState<Tab>("sales");
   const [chartData, setChartData] = useState<any[]>([]);
 
   const refresh = async () => {
-    const since = startOfTodayISO();
     const [{ data: orders }, { data: items }, { data: exp }] = await Promise.all([
-      supabase.from("orders").select("id,total,created_at").gte("created_at", since),
-      supabase.from("order_items").select("price,quantity,created_at,product_name").gte("created_at", since),
-      supabase.from("expenses").select("total,purchase_date").eq("purchase_date", new Date().toISOString().slice(0,10)),
+      supabase.from("orders").select("id,total,created_at").gte("created_at", startISO).lte("created_at", endISO),
+      supabase.from("order_items").select("price,quantity,created_at,product_name").gte("created_at", startISO).lte("created_at", endISO),
+      supabase.from("expenses").select("total,purchase_date").eq("purchase_date", ymd),
     ]);
     const sales = (orders ?? []).reduce((s, o: any) => s + Number(o.total), 0);
     const expense = (exp ?? []).reduce((s, e: any) => s + Number(e.total), 0);
@@ -41,13 +42,13 @@ export default function Dashboard() {
     } else {
       const buckets: Record<string, number> = {};
       (exp ?? []).forEach((e: any) => {
-        buckets["Today"] = (buckets["Today"] ?? 0) + Number(e.total);
+        buckets[date.toLocaleDateString()] = (buckets[date.toLocaleDateString()] ?? 0) + Number(e.total);
       });
       setChartData(Object.entries(buckets).map(([t, v]) => ({ t, v })));
     }
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [tab, ymd]);
 
   useEffect(() => {
     const ch = supabase.channel("dash")
@@ -56,7 +57,7 @@ export default function Dashboard() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
-  }, [tab]);
+  }, [tab, ymd]);
 
   const stat = [
     { label: "Today's Sales", value: money(stats.sales), icon: DollarSign, gradient: "var(--gradient-primary)" },
