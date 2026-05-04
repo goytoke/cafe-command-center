@@ -6,18 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { money, today } from "@/lib/format";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import { prettyToast } from "@/components/PrettyToast";
 
 export default function Expense() {
+  const { ymd, date } = useDateFilter();
   const [items, setItems] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ reason: "", quantity: "1", amount: "", purchase_date: today() });
 
   const load = async () => {
-    const { data } = await supabase.from("expenses").select("*").order("purchase_date", { ascending: false });
+    const { data } = await supabase.from("expenses").select("*").eq("purchase_date", ymd).order("created_at", { ascending: false });
     setItems(data ?? []);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [ymd]);
 
   const save = async () => {
     const q = Number(form.quantity), a = Number(form.amount);
@@ -33,7 +35,7 @@ export default function Expense() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold gradient-text">Expenses</h1>
+        <h1 className="text-3xl font-bold gradient-text">Expenses — {date.toLocaleDateString()}</h1>
         <Button onClick={() => setOpen(true)} style={{ background: "var(--gradient-primary)" }} className="btn-glow"><Plus className="h-4 w-4 mr-2" /> Add Expense</Button>
       </div>
       <div className="glass-panel-strong p-4 overflow-x-auto">
