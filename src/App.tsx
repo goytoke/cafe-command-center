@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DateFilterProvider } from "@/contexts/DateFilterContext";
 import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
       <Sonner position="top-center" />
       <BrowserRouter>
         <AuthProvider>
+         <DateFilterProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route element={<AppLayout />}>
@@ -45,6 +47,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+         </DateFilterProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
