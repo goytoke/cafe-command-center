@@ -59,19 +59,20 @@ export default function Dashboard() {
     // eslint-disable-next-line
   }, [tab, ymd]);
 
+  const dateLbl = date.toDateString() === new Date().toDateString() ? "Today" : date.toLocaleDateString();
   const stat = [
-    { label: "Today's Sales", value: money(stats.sales), icon: DollarSign, gradient: "var(--gradient-primary)" },
-    { label: "Today's Orders", value: stats.orders, icon: ShoppingCart, gradient: "var(--gradient-accent)" },
-    { label: "Today's Expense", value: money(stats.expense), icon: Receipt, gradient: "var(--gradient-warning)" },
+    { label: `${dateLbl}'s Sales`, value: money(stats.sales), icon: DollarSign, gradient: "var(--gradient-primary)" },
+    { label: `${dateLbl}'s Orders`, value: stats.orders, icon: ShoppingCart, gradient: "var(--gradient-accent)" },
+    { label: `${dateLbl}'s Expense`, value: money(stats.expense), icon: Receipt, gradient: "var(--gradient-warning)" },
   ];
 
-  const emptyMsg = tab === "sales" ? "NO SALES TODAY" : tab === "order" ? "NO ORDERS TODAY" : "NO EXPENSE TODAY";
+  const emptyMsg = tab === "sales" ? "NO SALES" : tab === "order" ? "NO ORDERS" : "NO EXPENSE";
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
-        <p className="text-muted-foreground">Live overview of today's activity</p>
+        <p className="text-muted-foreground">Showing data for {dateLbl}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
