@@ -5,13 +5,32 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 export default function Sales() {
   const [items, setItems] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+
+  const load = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: it }, { data: ex }] = await Promise.all([
+      supabase.from("order_items").select("*").gte("created_at", startOfTodayISO()),
+      supabase.from("expenses").select("*").eq("purchase_date", today),
+    ]);
+    setItems(it ?? []);
+    setExpenses(ex ?? []);
+  };
+
   useEffect(() => {
-    supabase.from("order_items").select("*").gte("created_at", startOfTodayISO()).then(({ data }) => setItems(data ?? []));
+    load();
+    const ch = supabase.channel("sales-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
   const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
-  const netProfit = total - totalCost;
+  const totalExpense = expenses.reduce((s, e) => s + Number(e.total), 0);
+  const grossProfit = total - totalCost;
+  const netProfit = grossProfit - totalExpense;
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
@@ -32,6 +51,8 @@ export default function Sales() {
         <div className="flex gap-6 flex-wrap">
           <div><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-bold">{money(total)}</div></div>
           <div><div className="text-xs text-muted-foreground">Cost</div><div className="text-2xl font-bold text-warning">{money(totalCost)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Expense</div><div className="text-2xl font-bold text-destructive">{money(totalExpense)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Gross Profit</div><div className="text-2xl font-bold">{money(grossProfit)}</div></div>
           <div><div className="text-xs text-muted-foreground">Net Profit</div><div className="text-2xl font-bold text-success">{money(netProfit)}</div></div>
         </div>
       </div>
@@ -56,6 +77,27 @@ export default function Sales() {
           </tbody>
         </table>
       </div>
+
+      {expenses.length > 0 && (
+        <div className="glass-panel-strong p-4 overflow-x-auto">
+          <h2 className="font-semibold mb-3">Today's Expenses</h2>
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-muted-foreground border-b border-border">
+              <th className="p-3">Reason</th><th className="p-3">Qty</th><th className="p-3">Amount</th><th className="p-3">Total</th>
+            </tr></thead>
+            <tbody>
+              {expenses.map((e) => (
+                <tr key={e.id} className="border-b border-border/50">
+                  <td className="p-3 font-medium">{e.reason}</td>
+                  <td className="p-3">{e.quantity}</td>
+                  <td className="p-3">{money(e.amount)}</td>
+                  <td className="p-3 font-semibold text-destructive">-{money(e.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="glass-panel-strong p-6">
