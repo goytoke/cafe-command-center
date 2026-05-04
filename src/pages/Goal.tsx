@@ -1,34 +1,37 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trophy, Target as TargetIcon } from "lucide-react";
 import { prettyToast } from "@/components/PrettyToast";
-import { today } from "@/lib/format";
 
 export default function Goal() {
   const { user } = useAuth();
+  const { ymd, date } = useDateFilter();
   const [goals, setGoals] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [celebrate, setCelebrate] = useState(false);
 
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase.from("goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("goals").select("*").eq("user_id", user.id).eq("goal_date", ymd).order("created_at", { ascending: false });
     setGoals(data ?? []);
     // celebrate if yesterday all goals were completed
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const ymd = yesterday.toISOString().slice(0, 10);
-    const ydays = (data ?? []).filter((g) => g.goal_date === ymd);
-    if (ydays.length > 0 && ydays.every((g) => g.completed)) setCelebrate(true);
+    const yesterday = new Date(date); yesterday.setDate(yesterday.getDate() - 1);
+    const y = yesterday.getFullYear(); const m = String(yesterday.getMonth() + 1).padStart(2, "0"); const d = String(yesterday.getDate()).padStart(2, "0");
+    const yymd = `${y}-${m}-${d}`;
+    const { data: ydata } = await supabase.from("goals").select("*").eq("user_id", user.id).eq("goal_date", yymd);
+    if ((ydata ?? []).length > 0 && (ydata ?? []).every((g) => g.completed)) setCelebrate(true);
+    else setCelebrate(false);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, ymd]);
 
   const add = async () => {
     if (!text.trim() || !user) return;
-    await supabase.from("goals").insert({ user_id: user.id, title: text, goal_date: today() });
+    await supabase.from("goals").insert({ user_id: user.id, title: text, goal_date: ymd });
     setText(""); load();
   };
 
@@ -45,8 +48,8 @@ export default function Goal() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold gradient-text">My Goals</h1>
-        <p className="text-muted-foreground">Write down today's goals — get notified when you complete them</p>
+        <h1 className="text-3xl font-bold gradient-text">My Goals — {date.toLocaleDateString()}</h1>
+        <p className="text-muted-foreground">Goals for the selected date — get notified when you complete them</p>
       </div>
 
       {celebrate && (

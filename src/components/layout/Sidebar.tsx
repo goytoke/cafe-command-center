@@ -40,7 +40,7 @@ export default function Sidebar() {
   const fullName = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || profile.username : "";
 
   return (
-    <aside className="hidden md:flex flex-col w-64 shrink-0 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-72 shrink-0 bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
       <div className="p-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
@@ -67,7 +67,7 @@ export default function Sidebar() {
         <div className="text-xs text-sidebar-foreground">@{profile?.username}</div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1 no-scrollbar">
         {links.map((l) => (
           <NavLink key={l.to} to={l.to} className={linkCls} style={({ isActive }) => activeStyle(isActive) as any}>
             <l.icon className="h-4 w-4" />

@@ -5,13 +5,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import { supabase } from "@/integrations/supabase/client";
 import EditProfileDialog from "@/components/EditProfileDialog";
 
 export default function Header() {
   const nav = useNavigate();
   const { profile, user, signOut } = useAuth();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const { date, setDate } = useDateFilter();
   const [editOpen, setEditOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
 
@@ -37,7 +38,7 @@ export default function Header() {
             <Calendar className="h-4 w-4" />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-auto p-0 glass-panel-strong">
-            <CalendarUI mode="single" selected={date} onSelect={setDate} className="p-3 pointer-events-auto" />
+            <CalendarUI mode="single" selected={date} onSelect={(d) => d && setDate(d)} className="p-3 pointer-events-auto" />
           </PopoverContent>
         </Popover>
 
