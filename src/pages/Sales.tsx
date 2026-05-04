@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { money, startOfTodayISO } from "@/lib/format";
+import { money } from "@/lib/format";
+import { useDateFilter } from "@/contexts/DateFilterContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export default function Sales() {
+  const { ymd, startISO, endISO, date } = useDateFilter();
   const [items, setItems] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
 
   const load = async () => {
-    const today = new Date().toISOString().slice(0, 10);
     const [{ data: it }, { data: ex }] = await Promise.all([
-      supabase.from("order_items").select("*").gte("created_at", startOfTodayISO()),
-      supabase.from("expenses").select("*").eq("purchase_date", today),
+      supabase.from("order_items").select("*").gte("created_at", startISO).lte("created_at", endISO),
+      supabase.from("expenses").select("*").eq("purchase_date", ymd),
     ]);
     setItems(it ?? []);
     setExpenses(ex ?? []);
@@ -24,7 +25,8 @@ export default function Sales() {
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+    // eslint-disable-next-line
+  }, [ymd]);
 
   const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
   const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
@@ -47,7 +49,7 @@ export default function Sales() {
   return (
     <div className="space-y-6">
       <div className="flex items-baseline justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold gradient-text">Today's Sales</h1>
+        <h1 className="text-3xl font-bold gradient-text">Sales — {date.toLocaleDateString()}</h1>
         <div className="flex gap-6 flex-wrap">
           <div><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-bold">{money(total)}</div></div>
           <div><div className="text-xs text-muted-foreground">Cost</div><div className="text-2xl font-bold text-warning">{money(totalCost)}</div></div>
