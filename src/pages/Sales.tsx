@@ -9,13 +9,19 @@ export default function Sales() {
   const [items, setItems] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
 
+  const [orders, setOrders] = useState<Record<string, any>>({});
+
   const load = async () => {
-    const [{ data: it }, { data: ex }] = await Promise.all([
+    const [{ data: it }, { data: ex }, { data: ords }] = await Promise.all([
       supabase.from("order_items").select("*").gte("created_at", startISO).lte("created_at", endISO),
       supabase.from("expenses").select("*").eq("purchase_date", ymd),
+      supabase.from("orders").select("*").gte("created_at", startISO).lte("created_at", endISO),
     ]);
     setItems(it ?? []);
     setExpenses(ex ?? []);
+    const map: Record<string, any> = {};
+    (ords ?? []).forEach((o: any) => { map[o.id] = o; });
+    setOrders(map);
   };
 
   useEffect(() => {
