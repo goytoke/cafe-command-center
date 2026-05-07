@@ -68,20 +68,23 @@ export default function Sales() {
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Time</th>
+            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Payment</th><th className="p-3">Time</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
-              items.map((i) => (
+            {items.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
+              items.map((i) => {
+                const pm = orders[i.order_id]?.payment_method ?? "-";
+                return (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.product_name}</td>
                   <td className="p-3">{i.quantity}</td>
                   <td className="p-3">{money(i.price)}</td>
                   <td className="p-3 text-success">{money(Number(i.price) - Number(i.cost ?? 0))}</td>
                   <td className="p-3 font-semibold">{money(Number(i.price) * Number(i.quantity))}</td>
+                  <td className="p-3"><span className="px-2 py-1 rounded-full text-xs capitalize bg-primary/15 text-primary border border-primary/30">{pm}</span></td>
                   <td className="p-3">{new Date(i.created_at).toLocaleTimeString()}</td>
                 </tr>
-              ))}
+              );})}
           </tbody>
         </table>
       </div>
