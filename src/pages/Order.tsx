@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CATEGORIES, SUBCATEGORIES, Category } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 import { money } from "@/lib/format";
 import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react";
 import { prettyToast } from "@/components/PrettyToast";
