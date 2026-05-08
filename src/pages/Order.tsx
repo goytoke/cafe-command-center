@@ -38,15 +38,15 @@ export default function Order() {
 
   const placeOrder = async () => {
     if (cart.length === 0) return prettyToast.error("Cart is empty");
-    const { data: order, error } = await supabase.from("orders").insert({ total, payment_method: pay }).select().single();
+    const { data: order, error } = await supabase.from("orders").insert({ total, payment_method: pay, discount: discountAmt }).select().single();
     if (error || !order) return prettyToast.error("Order failed", error?.message);
     await supabase.from("order_items").insert(cart.map((c) => ({
       order_id: order.id, product_id: c.product.id, product_name: c.product.name,
       category: c.product.category, subcategory: c.product.subcategory,
       quantity: c.qty, price: c.product.price, cost: c.product.cost ?? 0,
     })));
-    prettyToast.success("Order placed", `${money(total)} via ${pay}`);
-    setCart([]);
+    prettyToast.success("Order placed", `${money(total)} via ${pay}${discountAmt ? ` (− ${money(discountAmt)} discount)` : ""}`);
+    setCart([]); setDiscount(""); setDiscountLabel("");
   };
 
   return (
