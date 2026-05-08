@@ -37,8 +37,9 @@ export default function Sales() {
   const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
   const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
   const totalExpense = expenses.reduce((s, e) => s + Number(e.total), 0);
+  const totalDiscount = Object.values(orders).reduce((s: number, o: any) => s + Number(o?.discount ?? 0), 0);
   const grossProfit = total - totalCost;
-  const netProfit = grossProfit - totalExpense;
+  const netProfit = grossProfit - totalExpense - totalDiscount;
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
