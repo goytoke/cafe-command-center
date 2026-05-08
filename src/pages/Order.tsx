@@ -23,6 +23,8 @@ export default function Order() {
     supabase.from("products").select("*").order("name").then(({ data }) => setProducts(data ?? []));
   }, []);
 
+  useEffect(() => { if (!cat && categories.length > 0) setCat(categories[0].name); }, [categories, cat]);
+
   const filtered = products.filter((p) => p.category === cat && (sub === "All" || p.subcategory === sub));
   const subtotal = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
   const discountAmt = Math.max(0, Number(discount) || 0);
