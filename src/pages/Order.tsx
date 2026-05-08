@@ -11,7 +11,8 @@ const PAYMENT = ["Cash", "E-Birr", "Telebirr", "CBE"];
 
 export default function Order() {
   const [products, setProducts] = useState<any[]>([]);
-  const [cat, setCat] = useState<Category>("drink");
+  const { categories, subsOf } = useCategories();
+  const [cat, setCat] = useState<string>("");
   const [sub, setSub] = useState<string>("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("Cash");
