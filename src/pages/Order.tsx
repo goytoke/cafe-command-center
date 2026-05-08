@@ -57,14 +57,14 @@ export default function Order() {
           <h1 className="text-3xl font-bold gradient-text">Our Menu</h1>
         </div>
         <div className="flex justify-center gap-2">
-          {CATEGORIES.map((c) => (
-            <button key={c} onClick={() => { setCat(c); setSub("All"); }}
-              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium ${cat === c ? "text-white" : "bg-muted/50 hover:bg-muted"}`}
-              style={cat === c ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}>{c}</button>
+          {categories.map((c) => (
+            <button key={c.id} onClick={() => { setCat(c.name); setSub("All"); }}
+              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium ${cat === c.name ? "text-white" : "bg-muted/50 hover:bg-muted"}`}
+              style={cat === c.name ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}>{c.name}</button>
           ))}
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          {["All", ...SUBCATEGORIES[cat]].map((s) => (
+          {["All", ...subsOf(cat).map((s) => s.name)].map((s) => (
             <button key={s} onClick={() => setSub(s)}
               className={`px-4 py-1.5 rounded-lg text-sm ${sub === s ? "bg-accent text-accent-foreground font-semibold" : "bg-muted/50 hover:bg-muted"}`}>{s}</button>
           ))}
