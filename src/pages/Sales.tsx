@@ -37,8 +37,9 @@ export default function Sales() {
   const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
   const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
   const totalExpense = expenses.reduce((s, e) => s + Number(e.total), 0);
+  const totalDiscount = Object.values(orders).reduce((s: number, o: any) => s + Number(o?.discount ?? 0), 0);
   const grossProfit = total - totalCost;
-  const netProfit = grossProfit - totalExpense;
+  const netProfit = grossProfit - totalExpense - totalDiscount;
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
@@ -60,6 +61,7 @@ export default function Sales() {
           <div><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-bold">{money(total)}</div></div>
           <div><div className="text-xs text-muted-foreground">Cost</div><div className="text-2xl font-bold text-warning">{money(totalCost)}</div></div>
           <div><div className="text-xs text-muted-foreground">Expense</div><div className="text-2xl font-bold text-destructive">{money(totalExpense)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Discount</div><div className="text-2xl font-bold text-destructive">{money(totalDiscount)}</div></div>
           <div><div className="text-xs text-muted-foreground">Gross Profit</div><div className="text-2xl font-bold">{money(grossProfit)}</div></div>
           <div><div className="text-xs text-muted-foreground">Net Profit</div><div className="text-2xl font-bold text-success">{money(netProfit)}</div></div>
         </div>
@@ -68,12 +70,14 @@ export default function Sales() {
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Payment</th><th className="p-3">Time</th>
+            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Discount</th><th className="p-3">Payment</th><th className="p-3">Time</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
+            {items.length === 0 ? <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
               items.map((i) => {
-                const pm = orders[i.order_id]?.payment_method ?? "-";
+                const ord = orders[i.order_id];
+                const pm = ord?.payment_method ?? "-";
+                const disc = Number(ord?.discount ?? 0);
                 return (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.product_name}</td>
@@ -81,6 +85,7 @@ export default function Sales() {
                   <td className="p-3">{money(i.price)}</td>
                   <td className="p-3 text-success">{money(Number(i.price) - Number(i.cost ?? 0))}</td>
                   <td className="p-3 font-semibold">{money(Number(i.price) * Number(i.quantity))}</td>
+                  <td className="p-3 text-destructive">{disc > 0 ? `−${money(disc)}` : "—"}</td>
                   <td className="p-3"><span className="px-2 py-1 rounded-full text-xs capitalize bg-primary/15 text-primary border border-primary/30">{pm}</span></td>
                   <td className="p-3">{new Date(i.created_at).toLocaleTimeString()}</td>
                 </tr>

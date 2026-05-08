@@ -15,13 +15,17 @@ export default function Order() {
   const [sub, setSub] = useState<string>("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("Cash");
+  const [discount, setDiscount] = useState<string>("");
+  const [discountLabel, setDiscountLabel] = useState<string>("");
 
   useEffect(() => {
     supabase.from("products").select("*").order("name").then(({ data }) => setProducts(data ?? []));
   }, []);
 
   const filtered = products.filter((p) => p.category === cat && (sub === "All" || p.subcategory === sub));
-  const total = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
+  const subtotal = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
+  const discountAmt = Math.max(0, Number(discount) || 0);
+  const total = Math.max(0, subtotal - discountAmt);
 
   const addToCart = (p: any) => setCart((c) => {
     const existing = c.find((i) => i.product.id === p.id);
@@ -34,15 +38,15 @@ export default function Order() {
 
   const placeOrder = async () => {
     if (cart.length === 0) return prettyToast.error("Cart is empty");
-    const { data: order, error } = await supabase.from("orders").insert({ total, payment_method: pay }).select().single();
+    const { data: order, error } = await supabase.from("orders").insert({ total, payment_method: pay, discount: discountAmt }).select().single();
     if (error || !order) return prettyToast.error("Order failed", error?.message);
     await supabase.from("order_items").insert(cart.map((c) => ({
       order_id: order.id, product_id: c.product.id, product_name: c.product.name,
       category: c.product.category, subcategory: c.product.subcategory,
       quantity: c.qty, price: c.product.price, cost: c.product.cost ?? 0,
     })));
-    prettyToast.success("Order placed", `${money(total)} via ${pay}`);
-    setCart([]);
+    prettyToast.success("Order placed", `${money(total)} via ${pay}${discountAmt ? ` (− ${money(discountAmt)} discount)` : ""}`);
+    setCart([]); setDiscount(""); setDiscountLabel("");
   };
 
   return (
@@ -102,6 +106,29 @@ export default function Order() {
             ))}
           </div>
         )}
+        <div className="space-y-2 mb-3 text-sm">
+          <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={discountLabel}
+              onChange={(e) => setDiscountLabel(e.target.value)}
+              placeholder="Discount label"
+              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <input
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              placeholder="Discount amount"
+              min={0}
+              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          {discountAmt > 0 && (
+            <div className="flex justify-between text-destructive"><span>Discount{discountLabel ? ` (${discountLabel})` : ""}</span><span>−{money(discountAmt)}</span></div>
+          )}
+        </div>
         <div className="flex justify-between font-bold mb-3"><span>Total</span><span className="gradient-text">{money(total)}</span></div>
         <div className="space-y-2 mb-3">
           <div className="text-xs text-muted-foreground">Payment Method</div>
