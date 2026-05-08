@@ -106,6 +106,29 @@ export default function Order() {
             ))}
           </div>
         )}
+        <div className="space-y-2 mb-3 text-sm">
+          <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={discountLabel}
+              onChange={(e) => setDiscountLabel(e.target.value)}
+              placeholder="Discount label"
+              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <input
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              placeholder="Discount amount"
+              min={0}
+              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          {discountAmt > 0 && (
+            <div className="flex justify-between text-destructive"><span>Discount{discountLabel ? ` (${discountLabel})` : ""}</span><span>−{money(discountAmt)}</span></div>
+          )}
+        </div>
         <div className="flex justify-between font-bold mb-3"><span>Total</span><span className="gradient-text">{money(total)}</span></div>
         <div className="space-y-2 mb-3">
           <div className="text-xs text-muted-foreground">Payment Method</div>
