@@ -15,6 +15,8 @@ export default function Order() {
   const [sub, setSub] = useState<string>("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("Cash");
+  const [discount, setDiscount] = useState<string>("");
+  const [discountLabel, setDiscountLabel] = useState<string>("");
 
   useEffect(() => {
     supabase.from("products").select("*").order("name").then(({ data }) => setProducts(data ?? []));
