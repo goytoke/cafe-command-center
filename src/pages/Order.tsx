@@ -23,7 +23,9 @@ export default function Order() {
   }, []);
 
   const filtered = products.filter((p) => p.category === cat && (sub === "All" || p.subcategory === sub));
-  const total = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
+  const subtotal = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
+  const discountAmt = Math.max(0, Number(discount) || 0);
+  const total = Math.max(0, subtotal - discountAmt);
 
   const addToCart = (p: any) => setCart((c) => {
     const existing = c.find((i) => i.product.id === p.id);
