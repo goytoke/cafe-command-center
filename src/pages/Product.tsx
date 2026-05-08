@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Upload, Package } from "lucide-react";
-import { CATEGORIES, SUBCATEGORIES, Category } from "@/lib/categories";
+import { Plus, Pencil, Trash2, Upload, Package, Settings2 } from "lucide-react";
 import { money } from "@/lib/format";
 import { prettyToast } from "@/components/PrettyToast";
+import { useCategories } from "@/hooks/useCategories";
+import ManageCategoriesDialog from "@/components/ManageCategoriesDialog";
 
 export default function Product() {
   const [items, setItems] = useState<any[]>([]);
-  const [cat, setCat] = useState<Category>("drink");
+  const { categories, subsOf, reload: reloadCats } = useCategories();
+  const [cat, setCat] = useState<string>("");
   const [sub, setSub] = useState<string>("All");
   const [open, setOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "", category: "drink", subcategory: "Iced Coffee", price: "", cost: "", status: "available" });
+  const [form, setForm] = useState({ name: "", description: "", category: "", subcategory: "", price: "", cost: "", status: "available" });
   const [img, setImg] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -27,11 +30,19 @@ export default function Product() {
   };
   useEffect(() => { load(); }, []);
 
+  // Sync default selected category when categories load
+  useEffect(() => {
+    if (!cat && categories.length > 0) setCat(categories[0].name);
+  }, [categories, cat]);
+
+  const subs = useMemo(() => subsOf(cat), [cat, subsOf]);
   const filtered = items.filter((i) => i.category === cat && (sub === "All" || i.subcategory === sub));
 
   const openAdd = () => {
+    if (categories.length === 0) return prettyToast.error("Add a category first", "Open Product Management");
+    const firstSubs = subsOf(cat || categories[0].name);
     setEditing(null);
-    setForm({ name: "", description: "", category: cat, subcategory: SUBCATEGORIES[cat][0], price: "", cost: "", status: "available" });
+    setForm({ name: "", description: "", category: cat || categories[0].name, subcategory: firstSubs[0]?.name ?? "", price: "", cost: "", status: "available" });
     setImg(null); setPreview(null);
     setOpen(true);
   };
@@ -67,6 +78,8 @@ export default function Product() {
     load();
   };
 
+  const formSubs = subsOf(form.category);
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -75,26 +88,31 @@ export default function Product() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {CATEGORIES.map((c) => (
+        <div className="flex flex-wrap gap-2">
+          {categories.map((c) => (
             <button
-              key={c}
-              onClick={() => { setCat(c); setSub("All"); }}
-              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium transition-all ${cat === c ? "text-white shadow-lg" : "bg-muted/50 hover:bg-muted"}`}
-              style={cat === c ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}
+              key={c.id}
+              onClick={() => { setCat(c.name); setSub("All"); }}
+              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium transition-all ${cat === c.name ? "text-white shadow-lg" : "bg-muted/50 hover:bg-muted"}`}
+              style={cat === c.name ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}
             >
-              {c}
+              {c.name}
             </button>
           ))}
         </div>
-        <Button onClick={openAdd} style={{ background: "var(--gradient-primary)" }} className="btn-glow">
-          <Plus className="h-4 w-4 mr-2" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setManageOpen(true)}>
+            <Settings2 className="h-4 w-4 mr-2" /> Manage
+          </Button>
+          <Button onClick={openAdd} style={{ background: "var(--gradient-primary)" }} className="btn-glow">
+            <Plus className="h-4 w-4 mr-2" /> Add Product
+          </Button>
+        </div>
       </div>
 
       <div className="glass-panel-strong p-4">
         <div className="flex flex-wrap gap-2 mb-4">
-          {["All", ...SUBCATEGORIES[cat]].map((s) => (
+          {["All", ...subs.map((s) => s.name)].map((s) => (
             <button
               key={s}
               onClick={() => setSub(s)}
@@ -149,16 +167,16 @@ export default function Product() {
             <div className="col-span-2 space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v, subcategory: SUBCATEGORIES[v as Category][0] })}>
+              <Select value={form.category} onValueChange={(v) => { const fs = subsOf(v); setForm({ ...form, category: v, subcategory: fs[0]?.name ?? "" }); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+                <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name} className="capitalize">{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Subcategory</Label>
               <Select value={form.subcategory} onValueChange={(v) => setForm({ ...form, subcategory: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{SUBCATEGORIES[form.category as Category].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder="Pick subcategory" /></SelectTrigger>
+                <SelectContent>{formSubs.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Cost (per unit)</Label><Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} /></div>
@@ -184,6 +202,8 @@ export default function Product() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManageCategoriesDialog open={manageOpen} onOpenChange={(v) => { setManageOpen(v); if (!v) reloadCats(); }} />
     </div>
   );
 }

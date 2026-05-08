@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { CATEGORIES, SUBCATEGORIES, Category } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 import { money } from "@/lib/format";
 import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react";
 import { prettyToast } from "@/components/PrettyToast";
@@ -11,7 +11,8 @@ const PAYMENT = ["Cash", "E-Birr", "Telebirr", "CBE"];
 
 export default function Order() {
   const [products, setProducts] = useState<any[]>([]);
-  const [cat, setCat] = useState<Category>("drink");
+  const { categories, subsOf } = useCategories();
+  const [cat, setCat] = useState<string>("");
   const [sub, setSub] = useState<string>("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("Cash");
@@ -21,6 +22,8 @@ export default function Order() {
   useEffect(() => {
     supabase.from("products").select("*").order("name").then(({ data }) => setProducts(data ?? []));
   }, []);
+
+  useEffect(() => { if (!cat && categories.length > 0) setCat(categories[0].name); }, [categories, cat]);
 
   const filtered = products.filter((p) => p.category === cat && (sub === "All" || p.subcategory === sub));
   const subtotal = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
@@ -56,14 +59,14 @@ export default function Order() {
           <h1 className="text-3xl font-bold gradient-text">Our Menu</h1>
         </div>
         <div className="flex justify-center gap-2">
-          {CATEGORIES.map((c) => (
-            <button key={c} onClick={() => { setCat(c); setSub("All"); }}
-              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium ${cat === c ? "text-white" : "bg-muted/50 hover:bg-muted"}`}
-              style={cat === c ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}>{c}</button>
+          {categories.map((c) => (
+            <button key={c.id} onClick={() => { setCat(c.name); setSub("All"); }}
+              className={`px-5 py-2 rounded-xl capitalize text-sm font-medium ${cat === c.name ? "text-white" : "bg-muted/50 hover:bg-muted"}`}
+              style={cat === c.name ? { background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" } : {}}>{c.name}</button>
           ))}
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          {["All", ...SUBCATEGORIES[cat]].map((s) => (
+          {["All", ...subsOf(cat).map((s) => s.name)].map((s) => (
             <button key={s} onClick={() => setSub(s)}
               className={`px-4 py-1.5 rounded-lg text-sm ${sub === s ? "bg-accent text-accent-foreground font-semibold" : "bg-muted/50 hover:bg-muted"}`}>{s}</button>
           ))}
