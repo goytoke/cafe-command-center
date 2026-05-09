@@ -131,6 +131,7 @@ export type Database = {
           product_name: string
           quantity: number
           subcategory: string | null
+          takeaway: boolean
         }
         Insert: {
           category?: string | null
@@ -143,6 +144,7 @@ export type Database = {
           product_name: string
           quantity?: number
           subcategory?: string | null
+          takeaway?: boolean
         }
         Update: {
           category?: string | null
@@ -155,6 +157,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           subcategory?: string | null
+          takeaway?: boolean
         }
         Relationships: [
           {
@@ -175,6 +178,8 @@ export type Database = {
       }
       orders: {
         Row: {
+          additional: number
+          additional_label: string | null
           created_at: string
           created_by: string | null
           discount: number
@@ -183,6 +188,8 @@ export type Database = {
           total: number
         }
         Insert: {
+          additional?: number
+          additional_label?: string | null
           created_at?: string
           created_by?: string | null
           discount?: number
@@ -191,6 +198,8 @@ export type Database = {
           total?: number
         }
         Update: {
+          additional?: number
+          additional_label?: string | null
           created_at?: string
           created_by?: string | null
           discount?: number
