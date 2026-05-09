@@ -64,6 +64,7 @@ export default function Sales() {
           <div><div className="text-xs text-muted-foreground">Cost</div><div className="text-2xl font-bold text-warning">{money(totalCost)}</div></div>
           <div><div className="text-xs text-muted-foreground">Expense</div><div className="text-2xl font-bold text-destructive">{money(totalExpense)}</div></div>
           <div><div className="text-xs text-muted-foreground">Discount</div><div className="text-2xl font-bold text-destructive">{money(totalDiscount)}</div></div>
+          <div><div className="text-xs text-muted-foreground">Additional</div><div className="text-2xl font-bold text-accent">{money(totalAdditional)}</div></div>
           <div><div className="text-xs text-muted-foreground">Gross Profit</div><div className="text-2xl font-bold">{money(grossProfit)}</div></div>
           <div><div className="text-xs text-muted-foreground">Net Profit</div><div className="text-2xl font-bold text-success">{money(netProfit)}</div></div>
         </div>
