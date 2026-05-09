@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCategories } from "@/hooks/useCategories";
 import { money } from "@/lib/format";
-import { Plus, Minus, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Trash2, Check } from "lucide-react";
 import { prettyToast } from "@/components/PrettyToast";
 
-type CartItem = { product: any; qty: number };
+type CartItem = { product: any; qty: number; takeaway: boolean };
 const PAYMENT = ["Cash", "E-Birr", "Telebirr", "CBE"];
+const TAKEAWAY_FEE = 20;
 
 export default function Order() {
   const [products, setProducts] = useState<any[]>([]);
@@ -16,8 +18,20 @@ export default function Order() {
   const [sub, setSub] = useState<string>("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("Cash");
-  const [discount, setDiscount] = useState<string>("");
-  const [discountLabel, setDiscountLabel] = useState<string>("");
+
+  // Discount
+  const [discountOn, setDiscountOn] = useState(false);
+  const [discountInput, setDiscountInput] = useState<string>("");
+  const [discountLabelInput, setDiscountLabelInput] = useState<string>("");
+  const [discountAmt, setDiscountAmt] = useState(0);
+  const [discountLabel, setDiscountLabel] = useState("");
+
+  // Additional
+  const [additionalOn, setAdditionalOn] = useState(false);
+  const [additionalInput, setAdditionalInput] = useState<string>("");
+  const [additionalLabelInput, setAdditionalLabelInput] = useState<string>("");
+  const [additionalAmt, setAdditionalAmt] = useState(0);
+  const [additionalLabel, setAdditionalLabel] = useState("");
 
   useEffect(() => {
     supabase.from("products").select("*").order("name").then(({ data }) => setProducts(data ?? []));
@@ -26,34 +40,93 @@ export default function Order() {
   useEffect(() => { if (!cat && categories.length > 0) setCat(categories[0].name); }, [categories, cat]);
 
   const filtered = products.filter((p) => p.category === cat && (sub === "All" || p.subcategory === sub));
-  const subtotal = cart.reduce((s, c) => s + c.qty * Number(c.product.price), 0);
-  const discountAmt = Math.max(0, Number(discount) || 0);
-  const total = Math.max(0, subtotal - discountAmt);
+
+  const lineTotal = (c: CartItem) =>
+    c.qty * (Number(c.product.price) + (c.takeaway ? TAKEAWAY_FEE : 0));
+  const subtotal = cart.reduce((s, c) => s + lineTotal(c), 0);
+  const takeawayFees = cart.reduce((s, c) => s + (c.takeaway ? c.qty * TAKEAWAY_FEE : 0), 0);
+  const total = Math.max(0, subtotal - discountAmt + additionalAmt);
 
   const addToCart = (p: any) => setCart((c) => {
     const existing = c.find((i) => i.product.id === p.id);
     if (existing) return c.map((i) => i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-    return [...c, { product: p, qty: 1 }];
+    return [...c, { product: p, qty: 1, takeaway: false }];
   });
   const dec = (id: string) => setCart((c) => c.flatMap((i) => i.product.id === id ? (i.qty <= 1 ? [] : [{ ...i, qty: i.qty - 1 }]) : [i]));
   const inc = (id: string) => setCart((c) => c.map((i) => i.product.id === id ? { ...i, qty: i.qty + 1 } : i));
   const remove = (id: string) => setCart((c) => c.filter((i) => i.product.id !== id));
+  const toggleTakeaway = (id: string) =>
+    setCart((c) => c.map((i) => i.product.id === id ? { ...i, takeaway: !i.takeaway } : i));
+
+  const confirmDiscount = () => {
+    const v = Math.max(0, Number(discountInput) || 0);
+    setDiscountAmt(v);
+    setDiscountLabel(discountLabelInput);
+    if (v > 0) prettyToast.success("Discount applied", `−${money(v)}`);
+  };
+  const confirmAdditional = () => {
+    const v = Math.max(0, Number(additionalInput) || 0);
+    setAdditionalAmt(v);
+    setAdditionalLabel(additionalLabelInput);
+    if (v > 0) prettyToast.success("Additional applied", `+${money(v)}`);
+  };
+
+  const resetExtras = () => {
+    setDiscountOn(false); setDiscountAmt(0); setDiscountInput(""); setDiscountLabel(""); setDiscountLabelInput("");
+    setAdditionalOn(false); setAdditionalAmt(0); setAdditionalInput(""); setAdditionalLabel(""); setAdditionalLabelInput("");
+  };
 
   const placeOrder = async () => {
     if (cart.length === 0) return prettyToast.error("Cart is empty");
-    const { data: order, error } = await supabase.from("orders").insert({ total, payment_method: pay, discount: discountAmt }).select().single();
+    const { data: order, error } = await supabase.from("orders").insert({
+      total,
+      payment_method: pay,
+      discount: discountAmt,
+      additional: additionalAmt,
+      additional_label: additionalLabel || null,
+    } as any).select().single();
     if (error || !order) return prettyToast.error("Order failed", error?.message);
     await supabase.from("order_items").insert(cart.map((c) => ({
-      order_id: order.id, product_id: c.product.id, product_name: c.product.name,
-      category: c.product.category, subcategory: c.product.subcategory,
-      quantity: c.qty, price: c.product.price, cost: c.product.cost ?? 0,
-    })));
-    prettyToast.success("Order placed", `${money(total)} via ${pay}${discountAmt ? ` (− ${money(discountAmt)} discount)` : ""}`);
-    setCart([]); setDiscount(""); setDiscountLabel("");
+      order_id: order.id,
+      product_id: c.product.id,
+      product_name: c.product.name,
+      category: c.product.category,
+      subcategory: c.product.subcategory,
+      quantity: c.qty,
+      // store the effective unit price (incl. takeaway fee) so sales totals stay correct
+      price: Number(c.product.price) + (c.takeaway ? TAKEAWAY_FEE : 0),
+      cost: c.product.cost ?? 0,
+      takeaway: c.takeaway,
+    } as any)));
+
+    // Auto-deduct takeaway cups for iced drinks
+    const icedCups = cart
+      .filter((c) => c.product.category === "drink" && String(c.product.subcategory ?? "").toLowerCase().includes("iced"))
+      .reduce((s, c) => s + c.qty, 0);
+    if (icedCups > 0) {
+      const { data: cups } = await supabase
+        .from("store_items")
+        .select("*")
+        .ilike("name", "%takeaway cup%")
+        .order("created_at")
+        .limit(1);
+      const cup = cups?.[0];
+      if (cup) {
+        const newQty = Math.max(0, Number(cup.quantity) - icedCups);
+        await supabase.from("store_items").update({ quantity: newQty }).eq("id", cup.id);
+      } else {
+        prettyToast.error("Takeaway Cup not found in Store", "Add a store item named 'Takeaway Cup' to track stock");
+      }
+    }
+
+    prettyToast.success("Order placed", `${money(total)} via ${pay}`);
+    setCart([]); resetExtras();
   };
 
+  const isFoodOrSnack = (c: CartItem) => c.product.category === "food" || c.product.category === "snacks";
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr,380px] gap-6">
       <div className="space-y-5">
         <div className="text-center">
           <h1 className="text-3xl font-bold gradient-text">Our Menu</h1>
@@ -96,42 +169,74 @@ export default function Order() {
         ) : (
           <div className="space-y-3 mb-4 max-h-[40vh] overflow-y-auto pr-1">
             {cart.map((c) => (
-              <div key={c.product.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/40">
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{c.product.name}</div>
-                  <div className="text-xs text-muted-foreground">{money(c.product.price)} × {c.qty}</div>
+              <div key={c.product.id} className="p-2 rounded-lg bg-muted/40 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{c.product.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {money(c.product.price)} × {c.qty}
+                      {c.takeaway && <span className="ml-1 text-accent">+ {money(TAKEAWAY_FEE)} takeaway</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => dec(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg bg-muted hover:bg-background"><Minus className="h-3 w-3" /></button>
+                  <span className="w-6 text-center text-sm font-semibold">{c.qty}</span>
+                  <button onClick={() => inc(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg bg-muted hover:bg-background"><Plus className="h-3 w-3" /></button>
+                  <button onClick={() => remove(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="h-3 w-3" /></button>
                 </div>
-                <button onClick={() => dec(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg bg-muted hover:bg-background"><Minus className="h-3 w-3" /></button>
-                <span className="w-6 text-center text-sm font-semibold">{c.qty}</span>
-                <button onClick={() => inc(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg bg-muted hover:bg-background"><Plus className="h-3 w-3" /></button>
-                <button onClick={() => remove(c.product.id)} className="h-7 w-7 grid place-items-center rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="h-3 w-3" /></button>
+                {isFoodOrSnack(c) && (
+                  <label className="flex items-center gap-2 text-xs cursor-pointer pl-1">
+                    <Checkbox checked={c.takeaway} onCheckedChange={() => toggleTakeaway(c.product.id)} />
+                    <span>Takeaway (+{money(TAKEAWAY_FEE)})</span>
+                  </label>
+                )}
               </div>
             ))}
           </div>
         )}
+
         <div className="space-y-2 mb-3 text-sm">
           <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{money(subtotal)}</span></div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={discountLabel}
-              onChange={(e) => setDiscountLabel(e.target.value)}
-              placeholder="Discount label"
-              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <input
-              type="number"
-              value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
-              placeholder="Discount amount"
-              min={0}
-              className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          {takeawayFees > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground"><span>↳ incl. takeaway</span><span>+{money(takeawayFees)}</span></div>
+          )}
+
+          {/* Discount */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={discountOn} onCheckedChange={(v) => { setDiscountOn(!!v); if (!v) { setDiscountAmt(0); setDiscountLabel(""); } }} />
+            <span>Discount</span>
+          </label>
+          {discountOn && (
+            <div className="grid grid-cols-[1fr,1fr,auto] gap-2">
+              <input value={discountLabelInput} onChange={(e) => setDiscountLabelInput(e.target.value)} placeholder="Label"
+                className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input type="number" min={0} value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} placeholder="Amount"
+                className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button onClick={confirmDiscount} className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1"><Check className="h-3 w-3" />OK</button>
+            </div>
+          )}
           {discountAmt > 0 && (
             <div className="flex justify-between text-destructive"><span>Discount{discountLabel ? ` (${discountLabel})` : ""}</span><span>−{money(discountAmt)}</span></div>
           )}
+
+          {/* Additional */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={additionalOn} onCheckedChange={(v) => { setAdditionalOn(!!v); if (!v) { setAdditionalAmt(0); setAdditionalLabel(""); } }} />
+            <span>Additional</span>
+          </label>
+          {additionalOn && (
+            <div className="grid grid-cols-[1fr,1fr,auto] gap-2">
+              <input value={additionalLabelInput} onChange={(e) => setAdditionalLabelInput(e.target.value)} placeholder="Label"
+                className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input type="number" min={0} value={additionalInput} onChange={(e) => setAdditionalInput(e.target.value)} placeholder="Amount"
+                className="h-9 px-2 rounded-lg bg-muted/40 border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button onClick={confirmAdditional} className="h-9 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold flex items-center gap-1"><Check className="h-3 w-3" />OK</button>
+            </div>
+          )}
+          {additionalAmt > 0 && (
+            <div className="flex justify-between text-accent"><span>Additional{additionalLabel ? ` (${additionalLabel})` : ""}</span><span>+{money(additionalAmt)}</span></div>
+          )}
         </div>
+
         <div className="flex justify-between font-bold mb-3"><span>Total</span><span className="gradient-text">{money(total)}</span></div>
         <div className="space-y-2 mb-3">
           <div className="text-xs text-muted-foreground">Payment Method</div>
