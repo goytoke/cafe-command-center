@@ -73,22 +73,26 @@ export default function Sales() {
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Item</th><th className="p-3">Quantity</th><th className="p-3">Price</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Discount</th><th className="p-3">Payment</th><th className="p-3">Time</th>
+            <th className="p-3">Item</th><th className="p-3">Qty</th><th className="p-3">Price</th><th className="p-3">Takeaway</th><th className="p-3">Profit/unit</th><th className="p-3">Total</th><th className="p-3">Discount</th><th className="p-3">Additional</th><th className="p-3">Payment</th><th className="p-3">Time</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
+            {items.length === 0 ? <tr><td colSpan={10} className="p-12 text-center text-muted-foreground">No sales today</td></tr> :
               items.map((i) => {
                 const ord = orders[i.order_id];
                 const pm = ord?.payment_method ?? "-";
                 const disc = Number(ord?.discount ?? 0);
+                const add = Number(ord?.additional ?? 0);
+                const addLabel = ord?.additional_label;
                 return (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.product_name}</td>
                   <td className="p-3">{i.quantity}</td>
                   <td className="p-3">{money(i.price)}</td>
+                  <td className="p-3">{i.takeaway ? <span className="px-2 py-0.5 rounded-full text-xs bg-accent/15 text-accent border border-accent/30">Takeaway</span> : "—"}</td>
                   <td className="p-3 text-success">{money(Number(i.price) - Number(i.cost ?? 0))}</td>
                   <td className="p-3 font-semibold">{money(Number(i.price) * Number(i.quantity))}</td>
                   <td className="p-3 text-destructive">{disc > 0 ? `−${money(disc)}` : "—"}</td>
+                  <td className="p-3 text-accent">{add > 0 ? `+${money(add)}${addLabel ? ` (${addLabel})` : ""}` : "—"}</td>
                   <td className="p-3"><span className="px-2 py-1 rounded-full text-xs capitalize bg-primary/15 text-primary border border-primary/30">{pm}</span></td>
                   <td className="p-3">{new Date(i.created_at).toLocaleTimeString()}</td>
                 </tr>
