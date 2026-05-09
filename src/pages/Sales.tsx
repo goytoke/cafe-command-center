@@ -34,12 +34,14 @@ export default function Sales() {
     // eslint-disable-next-line
   }, [ymd]);
 
-  const total = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
   const totalCost = items.reduce((s, i) => s + Number(i.cost ?? 0) * Number(i.quantity), 0);
   const totalExpense = expenses.reduce((s, e) => s + Number(e.total), 0);
   const totalDiscount = Object.values(orders).reduce((s: number, o: any) => s + Number(o?.discount ?? 0), 0);
+  const totalAdditional = Object.values(orders).reduce((s: number, o: any) => s + Number(o?.additional ?? 0), 0);
+  // Revenue = what was actually collected (already includes takeaway fees in item prices, plus additional, minus discount)
+  const total = Object.values(orders).reduce((s: number, o: any) => s + Number(o?.total ?? 0), 0);
   const grossProfit = total - totalCost;
-  const netProfit = grossProfit - totalExpense - totalDiscount;
+  const netProfit = grossProfit - totalExpense;
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
