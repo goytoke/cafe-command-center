@@ -59,7 +59,7 @@ export default function Order() {
   const updateItem = (id: string, patch: Partial<CartItem>) =>
     setCart((c) => c.map((i) => i.product.id === id ? { ...i, ...patch } : i));
   const dec = (id: string) => setCart((c) => c.flatMap((i) => i.product.id === id ? (i.qty <= 1 ? [] : [{ ...i, qty: i.qty - 1 }]) : [i]));
-  const inc = (id: string) => updateItem(id, {} as any) || setCart((c) => c.map((i) => i.product.id === id ? { ...i, qty: i.qty + 1 } : i));
+  const inc = (id: string) => setCart((c) => c.map((i) => i.product.id === id ? { ...i, qty: i.qty + 1 } : i));
   const remove = (id: string) => setCart((c) => c.filter((i) => i.product.id !== id));
 
   const confirmDiscount = (c: CartItem) => {
