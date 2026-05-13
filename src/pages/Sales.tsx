@@ -44,16 +44,40 @@ export default function Sales() {
   const netProfit = grossProfit - totalExpense;
 
   const byCategory = useMemo(() => {
-    const m: Record<string, number> = {};
-    items.forEach((i) => { m[i.category] = (m[i.category] ?? 0) + Number(i.quantity); });
-    return Object.entries(m).map(([name, count]) => ({ name, count }));
+    const m: Record<string, { qty: number; revenue: number; cost: number }> = {};
+    items.forEach((i) => {
+      const k = i.category || "—";
+      if (!m[k]) m[k] = { qty: 0, revenue: 0, cost: 0 };
+      m[k].qty += Number(i.quantity);
+      m[k].revenue += Number(i.price) * Number(i.quantity);
+      m[k].cost += Number(i.cost ?? 0) * Number(i.quantity);
+    });
+    return m;
   }, [items]);
 
   const bySub = useMemo(() => {
-    const m: Record<string, number> = {};
-    items.forEach((i) => { m[i.subcategory] = (m[i.subcategory] ?? 0) + Number(i.quantity); });
-    return Object.entries(m).map(([name, count]) => ({ name, count }));
+    const m: Record<string, { category: string; qty: number; revenue: number; cost: number }> = {};
+    items.forEach((i) => {
+      const k = i.subcategory || "—";
+      if (!m[k]) m[k] = { category: i.category || "—", qty: 0, revenue: 0, cost: 0 };
+      m[k].qty += Number(i.quantity);
+      m[k].revenue += Number(i.price) * Number(i.quantity);
+      m[k].cost += Number(i.cost ?? 0) * Number(i.quantity);
+    });
+    return m;
   }, [items]);
+
+  const expenseByCategory = useMemo(() => {
+    const m: Record<string, number> = {};
+    expenses.forEach((e) => {
+      const k = e.category || "general";
+      m[k] = (m[k] ?? 0) + Number(e.total);
+    });
+    return m;
+  }, [expenses]);
+
+  const byCategoryChart = Object.entries(byCategory).map(([name, v]) => ({ name, count: v.qty }));
+  const bySubChart = Object.entries(bySub).map(([name, v]) => ({ name, count: v.qty }));
 
   return (
     <div className="space-y-6">
