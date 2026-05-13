@@ -23,10 +23,10 @@ export default function Expense() {
 
   const save = async () => {
     const q = Number(form.quantity), a = Number(form.amount);
-    await supabase.from("expenses").insert({ reason: form.reason, quantity: q, amount: a, total: q * a, purchase_date: form.purchase_date });
+    await supabase.from("expenses").insert({ reason: form.reason, category: form.category || null, quantity: q, amount: a, total: q * a, purchase_date: form.purchase_date });
     prettyToast.success(`"${form.reason}" added`, "Expense recorded");
     setOpen(false);
-    setForm({ reason: "", quantity: "1", amount: "", purchase_date: today() });
+    setForm({ reason: "", category: "", quantity: "1", amount: "", purchase_date: today() });
     load();
   };
 
