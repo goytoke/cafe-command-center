@@ -97,3 +97,79 @@ export default function Report() {
     </div>
   );
 }
+
+function BreakdownPanels({ items, exp }: { items: any[]; exp: any[] }) {
+  const bySub: Record<string, { category: string; qty: number; revenue: number; cost: number }> = {};
+  const byCat: Record<string, { qty: number; revenue: number; cost: number }> = {};
+  items.forEach((i) => {
+    const s = i.subcategory || "—";
+    const c = i.category || "—";
+    const rev = Number(i.price) * Number(i.quantity);
+    const cost = Number(i.cost ?? 0) * Number(i.quantity);
+    if (!bySub[s]) bySub[s] = { category: c, qty: 0, revenue: 0, cost: 0 };
+    bySub[s].qty += Number(i.quantity); bySub[s].revenue += rev; bySub[s].cost += cost;
+    if (!byCat[c]) byCat[c] = { qty: 0, revenue: 0, cost: 0 };
+    byCat[c].qty += Number(i.quantity); byCat[c].revenue += rev; byCat[c].cost += cost;
+  });
+  const expByCat: Record<string, number> = {};
+  exp.forEach((e) => { const k = e.category || "general"; expByCat[k] = (expByCat[k] ?? 0) + Number(e.total); });
+
+  return (
+    <>
+      <div className="glass-panel-strong p-4 overflow-x-auto">
+        <h2 className="font-semibold mb-3">Breakdown by Subcategory</h2>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground border-b border-border">
+            <th className="p-3">Subcategory</th><th className="p-3">Category</th><th className="p-3">Sold</th><th className="p-3">Revenue</th><th className="p-3">Cost</th><th className="p-3">Profit</th>
+          </tr></thead>
+          <tbody>
+            {Object.keys(bySub).length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No data</td></tr> :
+              Object.entries(bySub).map(([n, v]) => (
+                <tr key={n} className="border-b border-border/50">
+                  <td className="p-3 font-medium capitalize">{n}</td>
+                  <td className="p-3 capitalize text-muted-foreground">{v.category}</td>
+                  <td className="p-3">{v.qty}</td>
+                  <td className="p-3">{money(v.revenue)}</td>
+                  <td className="p-3 text-warning">{money(v.cost)}</td>
+                  <td className="p-3 font-semibold text-success">{money(v.revenue - v.cost)}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="glass-panel-strong p-4 overflow-x-auto">
+        <h2 className="font-semibold mb-3">Breakdown by Category (with Expenses)</h2>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground border-b border-border">
+            <th className="p-3">Category</th><th className="p-3">Sold</th><th className="p-3">Revenue</th><th className="p-3">Cost</th><th className="p-3">Gross Profit</th><th className="p-3">Expense</th><th className="p-3">Net Profit</th>
+          </tr></thead>
+          <tbody>
+            {Object.keys(byCat).length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No data</td></tr> :
+              Object.entries(byCat).map(([n, v]) => {
+                const e = expByCat[n] ?? 0; const g = v.revenue - v.cost;
+                return (
+                  <tr key={n} className="border-b border-border/50">
+                    <td className="p-3 font-medium capitalize">{n}</td>
+                    <td className="p-3">{v.qty}</td>
+                    <td className="p-3">{money(v.revenue)}</td>
+                    <td className="p-3 text-warning">{money(v.cost)}</td>
+                    <td className="p-3">{money(g)}</td>
+                    <td className="p-3 text-destructive">{money(e)}</td>
+                    <td className="p-3 font-semibold text-success">{money(g - e)}</td>
+                  </tr>
+                );
+              })}
+            {expByCat.general ? (
+              <tr className="border-b border-border/50">
+                <td className="p-3 font-medium text-muted-foreground">General (uncategorized)</td>
+                <td className="p-3">—</td><td className="p-3">—</td><td className="p-3">—</td><td className="p-3">—</td>
+                <td className="p-3 text-destructive">{money(expByCat.general)}</td>
+                <td className="p-3 font-semibold text-destructive">−{money(expByCat.general)}</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
