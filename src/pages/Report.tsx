@@ -79,9 +79,9 @@ export default function Report() {
             ))}</tbody>
           </>)}
           {tab === "expense" && (<>
-            <thead><tr className="text-left text-muted-foreground border-b border-border"><th className="p-3">Date</th><th className="p-3">Reason</th><th className="p-3">Qty</th><th className="p-3">Total</th></tr></thead>
-            <tbody>{exp.length === 0 ? <tr><td colSpan={4} className="p-12 text-center text-muted-foreground">No expenses</td></tr> : exp.map((e) => (
-              <tr key={e.id} className="border-b border-border/50"><td className="p-3">{e.purchase_date}</td><td className="p-3">{e.reason}</td><td className="p-3">{e.quantity}</td><td className="p-3 font-semibold">{money(e.total)}</td></tr>
+            <thead><tr className="text-left text-muted-foreground border-b border-border"><th className="p-3">Date</th><th className="p-3">Reason</th><th className="p-3">Category</th><th className="p-3">Qty</th><th className="p-3">Total</th></tr></thead>
+            <tbody>{exp.length === 0 ? <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No expenses</td></tr> : exp.map((e) => (
+              <tr key={e.id} className="border-b border-border/50"><td className="p-3">{e.purchase_date}</td><td className="p-3">{e.reason}</td><td className="p-3 capitalize text-muted-foreground">{e.category ?? "—"}</td><td className="p-3">{e.quantity}</td><td className="p-3 font-semibold">{money(e.total)}</td></tr>
             ))}</tbody>
           </>)}
           {tab === "orders" && (<>
@@ -92,6 +92,8 @@ export default function Report() {
           </>)}
         </table>
       </div>
+
+      {tab === "sales" && <BreakdownPanels items={items} exp={exp} />}
     </div>
   );
 }
