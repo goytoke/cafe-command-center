@@ -68,6 +68,14 @@ export default function Expense() {
           <DialogHeader><DialogTitle className="gradient-text text-2xl">Add Expense</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2"><Label>Reason</Label><Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Category</Label>
+              <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <option value="">— None (general) —</option>
+                <option value="drink">Drink</option>
+                <option value="food">Food</option>
+                <option value="snacks">Snacks</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Quantity</Label><Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
               <div className="space-y-2"><Label>Amount</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
