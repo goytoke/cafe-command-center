@@ -13,7 +13,7 @@ export default function Expense() {
   const { ymd, date } = useDateFilter();
   const [items, setItems] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ reason: "", quantity: "1", amount: "", purchase_date: today() });
+  const [form, setForm] = useState({ reason: "", category: "", quantity: "1", amount: "", purchase_date: today() });
 
   const load = async () => {
     const { data } = await supabase.from("expenses").select("*").eq("purchase_date", ymd).order("created_at", { ascending: false });
@@ -23,10 +23,10 @@ export default function Expense() {
 
   const save = async () => {
     const q = Number(form.quantity), a = Number(form.amount);
-    await supabase.from("expenses").insert({ reason: form.reason, quantity: q, amount: a, total: q * a, purchase_date: form.purchase_date });
+    await supabase.from("expenses").insert({ reason: form.reason, category: form.category || null, quantity: q, amount: a, total: q * a, purchase_date: form.purchase_date });
     prettyToast.success(`"${form.reason}" added`, "Expense recorded");
     setOpen(false);
-    setForm({ reason: "", quantity: "1", amount: "", purchase_date: today() });
+    setForm({ reason: "", category: "", quantity: "1", amount: "", purchase_date: today() });
     load();
   };
 
@@ -41,13 +41,14 @@ export default function Expense() {
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Reason</th><th className="p-3">Quantity</th><th className="p-3">Amount</th><th className="p-3">Total</th><th className="p-3">Date</th><th className="p-3">Action</th>
+            <th className="p-3">Reason</th><th className="p-3">Category</th><th className="p-3">Quantity</th><th className="p-3">Amount</th><th className="p-3">Total</th><th className="p-3">Date</th><th className="p-3">Action</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No expenses recorded</td></tr> :
+            {items.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No expenses recorded</td></tr> :
               items.map((i) => (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.reason}</td>
+                  <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs capitalize bg-muted text-muted-foreground border border-border">{i.category ?? "—"}</span></td>
                   <td className="p-3">{i.quantity}</td>
                   <td className="p-3">{money(i.amount)}</td>
                   <td className="p-3 font-semibold">{money(i.total)}</td>
@@ -67,6 +68,14 @@ export default function Expense() {
           <DialogHeader><DialogTitle className="gradient-text text-2xl">Add Expense</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2"><Label>Reason</Label><Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Category</Label>
+              <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <option value="">— None (general) —</option>
+                <option value="drink">Drink</option>
+                <option value="food">Food</option>
+                <option value="snacks">Snacks</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Quantity</Label><Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
               <div className="space-y-2"><Label>Amount</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>

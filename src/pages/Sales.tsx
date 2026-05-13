@@ -44,16 +44,40 @@ export default function Sales() {
   const netProfit = grossProfit - totalExpense;
 
   const byCategory = useMemo(() => {
-    const m: Record<string, number> = {};
-    items.forEach((i) => { m[i.category] = (m[i.category] ?? 0) + Number(i.quantity); });
-    return Object.entries(m).map(([name, count]) => ({ name, count }));
+    const m: Record<string, { qty: number; revenue: number; cost: number }> = {};
+    items.forEach((i) => {
+      const k = i.category || "—";
+      if (!m[k]) m[k] = { qty: 0, revenue: 0, cost: 0 };
+      m[k].qty += Number(i.quantity);
+      m[k].revenue += Number(i.price) * Number(i.quantity);
+      m[k].cost += Number(i.cost ?? 0) * Number(i.quantity);
+    });
+    return m;
   }, [items]);
 
   const bySub = useMemo(() => {
-    const m: Record<string, number> = {};
-    items.forEach((i) => { m[i.subcategory] = (m[i.subcategory] ?? 0) + Number(i.quantity); });
-    return Object.entries(m).map(([name, count]) => ({ name, count }));
+    const m: Record<string, { category: string; qty: number; revenue: number; cost: number }> = {};
+    items.forEach((i) => {
+      const k = i.subcategory || "—";
+      if (!m[k]) m[k] = { category: i.category || "—", qty: 0, revenue: 0, cost: 0 };
+      m[k].qty += Number(i.quantity);
+      m[k].revenue += Number(i.price) * Number(i.quantity);
+      m[k].cost += Number(i.cost ?? 0) * Number(i.quantity);
+    });
+    return m;
   }, [items]);
+
+  const expenseByCategory = useMemo(() => {
+    const m: Record<string, number> = {};
+    expenses.forEach((e) => {
+      const k = e.category || "general";
+      m[k] = (m[k] ?? 0) + Number(e.total);
+    });
+    return m;
+  }, [expenses]);
+
+  const byCategoryChart = Object.entries(byCategory).map(([name, v]) => ({ name, count: v.qty }));
+  const bySubChart = Object.entries(bySub).map(([name, v]) => ({ name, count: v.qty }));
 
   return (
     <div className="space-y-6">
@@ -101,17 +125,79 @@ export default function Sales() {
         </table>
       </div>
 
+      {/* Per-subcategory breakdown */}
+      <div className="glass-panel-strong p-4 overflow-x-auto">
+        <h2 className="font-semibold mb-3">Breakdown by Subcategory</h2>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground border-b border-border">
+            <th className="p-3">Subcategory</th><th className="p-3">Category</th><th className="p-3">Sold</th><th className="p-3">Revenue</th><th className="p-3">Cost</th><th className="p-3">Profit</th>
+          </tr></thead>
+          <tbody>
+            {Object.keys(bySub).length === 0 ? (
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No data</td></tr>
+            ) : Object.entries(bySub).map(([name, v]) => (
+              <tr key={name} className="border-b border-border/50">
+                <td className="p-3 font-medium capitalize">{name}</td>
+                <td className="p-3 capitalize text-muted-foreground">{v.category}</td>
+                <td className="p-3">{v.qty}</td>
+                <td className="p-3">{money(v.revenue)}</td>
+                <td className="p-3 text-warning">{money(v.cost)}</td>
+                <td className="p-3 font-semibold text-success">{money(v.revenue - v.cost)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Per-category breakdown with expense allocation */}
+      <div className="glass-panel-strong p-4 overflow-x-auto">
+        <h2 className="font-semibold mb-3">Breakdown by Category (with Expenses)</h2>
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-muted-foreground border-b border-border">
+            <th className="p-3">Category</th><th className="p-3">Sold</th><th className="p-3">Revenue</th><th className="p-3">Cost</th><th className="p-3">Gross Profit</th><th className="p-3">Expense</th><th className="p-3">Net Profit</th>
+          </tr></thead>
+          <tbody>
+            {Object.keys(byCategory).length === 0 ? (
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No data</td></tr>
+            ) : Object.entries(byCategory).map(([name, v]) => {
+              const exp = expenseByCategory[name] ?? 0;
+              const gross = v.revenue - v.cost;
+              return (
+                <tr key={name} className="border-b border-border/50">
+                  <td className="p-3 font-medium capitalize">{name}</td>
+                  <td className="p-3">{v.qty}</td>
+                  <td className="p-3">{money(v.revenue)}</td>
+                  <td className="p-3 text-warning">{money(v.cost)}</td>
+                  <td className="p-3">{money(gross)}</td>
+                  <td className="p-3 text-destructive">{money(exp)}</td>
+                  <td className="p-3 font-semibold text-success">{money(gross - exp)}</td>
+                </tr>
+              );
+            })}
+            {expenseByCategory.general ? (
+              <tr className="border-b border-border/50">
+                <td className="p-3 font-medium text-muted-foreground">General (uncategorized)</td>
+                <td className="p-3">—</td><td className="p-3">—</td><td className="p-3">—</td><td className="p-3">—</td>
+                <td className="p-3 text-destructive">{money(expenseByCategory.general)}</td>
+                <td className="p-3 font-semibold text-destructive">−{money(expenseByCategory.general)}</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+
       {expenses.length > 0 && (
         <div className="glass-panel-strong p-4 overflow-x-auto">
           <h2 className="font-semibold mb-3">Today's Expenses</h2>
           <table className="w-full text-sm">
             <thead><tr className="text-left text-muted-foreground border-b border-border">
-              <th className="p-3">Reason</th><th className="p-3">Qty</th><th className="p-3">Amount</th><th className="p-3">Total</th>
+              <th className="p-3">Reason</th><th className="p-3">Category</th><th className="p-3">Qty</th><th className="p-3">Amount</th><th className="p-3">Total</th>
             </tr></thead>
             <tbody>
               {expenses.map((e) => (
                 <tr key={e.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{e.reason}</td>
+                  <td className="p-3 capitalize text-muted-foreground">{e.category ?? "—"}</td>
                   <td className="p-3">{e.quantity}</td>
                   <td className="p-3">{money(e.amount)}</td>
                   <td className="p-3 font-semibold text-destructive">-{money(e.total)}</td>
@@ -126,7 +212,7 @@ export default function Sales() {
         <div className="glass-panel-strong p-6">
           <h2 className="font-semibold mb-3">By Category</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={byCategory}>
+            <BarChart data={byCategoryChart}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
               <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -138,7 +224,7 @@ export default function Sales() {
         <div className="glass-panel-strong p-6">
           <h2 className="font-semibold mb-3">By Subcategory</h2>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={bySub}>
+            <BarChart data={bySubChart}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
               <YAxis stroke="hsl(var(--muted-foreground))" />
