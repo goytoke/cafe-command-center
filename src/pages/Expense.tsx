@@ -13,7 +13,7 @@ export default function Expense() {
   const { ymd, date } = useDateFilter();
   const [items, setItems] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ reason: "", quantity: "1", amount: "", purchase_date: today() });
+  const [form, setForm] = useState({ reason: "", category: "", quantity: "1", amount: "", purchase_date: today() });
 
   const load = async () => {
     const { data } = await supabase.from("expenses").select("*").eq("purchase_date", ymd).order("created_at", { ascending: false });
