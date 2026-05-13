@@ -41,13 +41,14 @@ export default function Expense() {
       <div className="glass-panel-strong p-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-muted-foreground border-b border-border">
-            <th className="p-3">Reason</th><th className="p-3">Quantity</th><th className="p-3">Amount</th><th className="p-3">Total</th><th className="p-3">Date</th><th className="p-3">Action</th>
+            <th className="p-3">Reason</th><th className="p-3">Category</th><th className="p-3">Quantity</th><th className="p-3">Amount</th><th className="p-3">Total</th><th className="p-3">Date</th><th className="p-3">Action</th>
           </tr></thead>
           <tbody>
-            {items.length === 0 ? <tr><td colSpan={6} className="p-12 text-center text-muted-foreground">No expenses recorded</td></tr> :
+            {items.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-muted-foreground">No expenses recorded</td></tr> :
               items.map((i) => (
                 <tr key={i.id} className="border-b border-border/50">
                   <td className="p-3 font-medium">{i.reason}</td>
+                  <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs capitalize bg-muted text-muted-foreground border border-border">{i.category ?? "—"}</span></td>
                   <td className="p-3">{i.quantity}</td>
                   <td className="p-3">{money(i.amount)}</td>
                   <td className="p-3 font-semibold">{money(i.total)}</td>
