@@ -187,6 +187,8 @@ export default function Sales() {
         </table>
       </div>
 
+      <SavingsPanels />
+
       {expenses.length > 0 && (
         <div className="glass-panel-strong p-4 overflow-x-auto">
           <h2 className="font-semibold mb-3">Today's Expenses</h2>
