@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { money } from "@/lib/format";
 import { useDateFilter } from "@/contexts/DateFilterContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import SavingsPanels from "@/components/SavingsPanels";
 
 export default function Sales() {
   const { ymd, startISO, endISO, date } = useDateFilter();
