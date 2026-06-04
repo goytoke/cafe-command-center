@@ -95,6 +95,7 @@ export default function Report() {
       </div>
 
       {tab === "sales" && <BreakdownPanels items={items} exp={exp} />}
+      <SavingsPanels />
     </div>
   );
 }
