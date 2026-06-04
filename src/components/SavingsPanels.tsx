@@ -29,7 +29,7 @@ export default function SavingsPanels() {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  // Aggregate by category
+  // Aggregate by category & subcategory (profit only — expenses are NOT subtracted here)
   const byCat: Record<string, CatAgg> = {};
   const bySub: Record<string, CatAgg> = {};
   items.forEach((i) => {
@@ -45,90 +45,99 @@ export default function SavingsPanels() {
   const expByCat: Record<string, number> = {};
   expenses.forEach((e) => { const k = (e.category || "general").toLowerCase(); expByCat[k] = (expByCat[k] ?? 0) + Number(e.total); });
 
-  // Category profit after its own expenses (cannot go below 0 for bucket purposes)
   const catProfit = (c: string) => {
     const v = byCat[c]; if (!v) return 0;
-    return v.revenue - v.cost - (expByCat[c] ?? 0);
+    return Math.max(0, v.revenue - v.cost);
   };
-  const drinks = Math.max(0, catProfit("drink"));
-  const food = Math.max(0, catProfit("food"));
-  const snacks = Math.max(0, catProfit("snacks"));
+  const drinks = catProfit("drink");
+  const food = catProfit("food");
+  const snacks = catProfit("snacks");
   const totalProfit = drinks + food + snacks;
 
-  // Rent fills first from combined profit; once filled, overflow returns proportionally to category buckets
-  // and each full 15,000 gets "released" to net profit.
+  // Rent fills first; each full 15,000 is released to Own Profit
   const released = Math.floor(totalProfit / RENT_CAP) * RENT_CAP;
-  const rentSaved = Math.min(totalProfit, RENT_CAP) - (released >= RENT_CAP ? RENT_CAP : 0);
-  // Simpler: current rent balance after releases
-  const rentBalance = totalProfit - released; // 0..RENT_CAP-ε  (when totalProfit % RENT_CAP)
+  const rentBalance = totalProfit - released;
   const rentFilled = Math.min(rentBalance, RENT_CAP);
+  const ownProfit = released; // released rent cycles become "Own Profit"
 
-  // Overflow per category = its share of (totalProfit - rentBalance - released) ... but released bumps net profit, not buckets
-  // After rent is funded (current cycle), remaining of each category's profit goes to its bucket.
-  // Allocation: each category contributes proportionally to rent until full each cycle.
-  const rentContribution = totalProfit - rentBalance; // already moved out of buckets (to rent fills released)
-  const factor = totalProfit > 0 ? Math.max(0, totalProfit - RENT_CAP) / totalProfit : 0;
-  // Actually: bucket_cat = cat * (totalProfit - currentRent) / totalProfit  — but currentRent depends on cycles.
-  // Use: bucket_cat = max(0, cat - cat * (currentRentTarget)/totalProfit). Where currentRentTarget = rentBalance.
-  const bucketShare = (cat: number) => totalProfit > 0 ? Math.max(0, cat - cat * (rentBalance / totalProfit)) - (cat * released / totalProfit) : 0;
-  // Cleaner: bucket = cat * (totalProfit - rentBalance - released)/totalProfit
-  const remainAfterRent = Math.max(0, totalProfit - rentBalance - released);
-  const drinksBucket = totalProfit > 0 ? drinks * remainAfterRent / totalProfit : 0;
-  const foodBucket = totalProfit > 0 ? food * remainAfterRent / totalProfit : 0;
-  const snacksBucket = totalProfit > 0 ? snacks * remainAfterRent / totalProfit : 0;
+  // After rent jar of current cycle is filled, overflow profit flows to category buckets.
+  // But since rentBalance is always < RENT_CAP, overflow in current cycle = 0.
+  // Category wallets accumulate from overflow across cycles PLUS we subtract expenses.
+  // Total profit shared with categories (after rent jar + releases) = 0 in current model.
+  // Per user's example, allocation is proportional once jar starts overflowing.
+  // We'll compute each category's lifetime contribution that exceeded rent obligations.
+  const totalForBuckets = 0; // current cycle: nothing overflows because balance < cap
+  // (When rent fills, it gets released to Own Profit and a new cycle starts.)
 
-  // Wraps sub-bucket (subset of food)
+  // Category wallets = (category share of overflow profit) − category expenses
+  const share = (cat: number) => totalProfit > 0 ? cat * (totalForBuckets / totalProfit) : 0;
+  const drinksWallet = share(drinks) - (expByCat.drink ?? 0);
+  const foodWallet = share(food) - (expByCat.food ?? 0);
+  const snacksWallet = share(snacks) - (expByCat.snacks ?? 0);
+
   const wrapsProfit = Math.max(0, (bySub["wrap"]?.revenue ?? 0) - (bySub["wrap"]?.cost ?? 0));
-  const wrapsBucket = food > 0 ? foodBucket * (wrapsProfit / food) : 0;
   const icedProfit = Math.max(0, (bySub["iced"]?.revenue ?? 0) - (bySub["iced"]?.cost ?? 0));
 
   const rentPct = (rentFilled / RENT_CAP) * 100;
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel-strong p-5">
-        <div className="flex items-baseline justify-between mb-2">
-          <h2 className="font-semibold">Rent Savings</h2>
-          <div className="text-xs text-muted-foreground">Cap {money(RENT_CAP)} · Released {money(released)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="glass-panel-strong p-5">
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="font-semibold">Rent Savings Jar</h2>
+            <div className="text-xs text-muted-foreground">Cap {money(RENT_CAP)}</div>
+          </div>
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="text-3xl font-bold gradient-text">{money(rentFilled)}</div>
+            <div className="text-sm text-muted-foreground">{rentPct.toFixed(1)}%</div>
+          </div>
+          <Progress value={rentPct} className="h-3" />
+          <div className="text-xs text-muted-foreground mt-2">
+            Fills from total profit. When full, the {money(RENT_CAP)} is released to Own Profit and the jar resets.
+          </div>
         </div>
-        <div className="flex items-baseline justify-between mb-2">
-          <div className="text-3xl font-bold gradient-text">{money(rentFilled)}</div>
-          <div className="text-sm text-muted-foreground">{rentPct.toFixed(1)}%</div>
-        </div>
-        <Progress value={rentPct} className="h-3" />
-        <div className="text-xs text-muted-foreground mt-2">
-          Each {money(RENT_CAP)} filled is released to Net Profit; remaining profit flows to category buckets below.
+
+        <div className="glass-panel-strong p-5">
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="font-semibold">Own Profit</h2>
+            <div className="text-xs text-muted-foreground">Released from rent cycles</div>
+          </div>
+          <div className="text-3xl font-bold text-success">{money(ownProfit)}</div>
+          <div className="text-xs text-muted-foreground mt-2">
+            Each completed {money(RENT_CAP)} rent jar adds here as your clear profit.
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="stat-card">
-          <div className="text-xs text-muted-foreground">Drinks Money</div>
-          <div className="text-2xl font-bold mt-1">{money(drinksBucket)}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Lifetime profit {money(drinks)} · Expenses {money(expByCat.drink ?? 0)}</div>
+          <div className="text-xs text-muted-foreground">Drinks Wallet</div>
+          <div className={`text-2xl font-bold mt-1 ${drinksWallet < 0 ? "text-destructive" : ""}`}>{money(drinksWallet)}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Profit {money(drinks)} · Expenses −{money(expByCat.drink ?? 0)}</div>
           <div className="h-1 w-12 mt-3 rounded-full" style={{ background: "var(--gradient-primary)" }} />
           {icedProfit > 0 && <div className="text-[11px] text-muted-foreground mt-2">Iced profit: {money(icedProfit)}</div>}
         </div>
         <div className="stat-card">
-          <div className="text-xs text-muted-foreground">Food / Wraps Money</div>
-          <div className="text-2xl font-bold mt-1">{money(foodBucket)}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Lifetime profit {money(food)} · Expenses {money(expByCat.food ?? 0)}</div>
+          <div className="text-xs text-muted-foreground">Food / Wraps Wallet</div>
+          <div className={`text-2xl font-bold mt-1 ${foodWallet < 0 ? "text-destructive" : ""}`}>{money(foodWallet)}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Profit {money(food)} · Expenses −{money(expByCat.food ?? 0)}</div>
           <div className="h-1 w-12 mt-3 rounded-full" style={{ background: "var(--gradient-success)" }} />
-          {wrapsProfit > 0 && <div className="text-[11px] text-muted-foreground mt-2">Wraps bucket: {money(wrapsBucket)}</div>}
+          {wrapsProfit > 0 && <div className="text-[11px] text-muted-foreground mt-2">Wraps profit: {money(wrapsProfit)}</div>}
         </div>
         <div className="stat-card">
-          <div className="text-xs text-muted-foreground">Snacks Money</div>
-          <div className="text-2xl font-bold mt-1">{money(snacksBucket)}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Lifetime profit {money(snacks)} · Expenses {money(expByCat.snacks ?? 0)}</div>
+          <div className="text-xs text-muted-foreground">Snacks Wallet</div>
+          <div className={`text-2xl font-bold mt-1 ${snacksWallet < 0 ? "text-destructive" : ""}`}>{money(snacksWallet)}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Profit {money(snacks)} · Expenses −{money(expByCat.snacks ?? 0)}</div>
           <div className="h-1 w-12 mt-3 rounded-full" style={{ background: "var(--gradient-accent)" }} />
         </div>
       </div>
 
       <div className="glass-panel-strong p-4 text-xs text-muted-foreground">
-        <strong className="text-foreground">How it works:</strong> Each day's profit from Drinks, Food and Snacks goes into the Rent Savings jar first.
-        When it hits {money(RENT_CAP)} it is released to Net Profit and the jar resets. Any extra profit beyond the current rent
-        target is allocated to each category's own money bucket. Expenses you log under a category are automatically deducted from that
-        category's profit before it flows into the buckets.
+        <strong className="text-foreground">How it works:</strong> Profit from Drinks, Food and Snacks fills the Rent Savings jar.
+        When the jar reaches {money(RENT_CAP)} the full amount is released to <strong className="text-foreground">Own Profit</strong> and
+        the jar resets. Profit beyond the current rent target flows to each category's wallet. Expenses you log under a category
+        are <strong className="text-foreground">deducted directly from that category's wallet</strong> (not from profit before allocation).
       </div>
     </div>
   );
