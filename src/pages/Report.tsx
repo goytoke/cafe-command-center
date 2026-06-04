@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { money } from "@/lib/format";
 import { useDateFilter } from "@/contexts/DateFilterContext";
 import { Download } from "lucide-react";
+import SavingsPanels from "@/components/SavingsPanels";
 
 type Tab = "sales" | "expense" | "orders";
 
@@ -94,6 +95,7 @@ export default function Report() {
       </div>
 
       {tab === "sales" && <BreakdownPanels items={items} exp={exp} />}
+      <SavingsPanels />
     </div>
   );
 }

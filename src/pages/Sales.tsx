@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { money } from "@/lib/format";
 import { useDateFilter } from "@/contexts/DateFilterContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import SavingsPanels from "@/components/SavingsPanels";
 
 export default function Sales() {
   const { ymd, startISO, endISO, date } = useDateFilter();
@@ -185,6 +186,8 @@ export default function Sales() {
           </tbody>
         </table>
       </div>
+
+      <SavingsPanels />
 
       {expenses.length > 0 && (
         <div className="glass-panel-strong p-4 overflow-x-auto">
